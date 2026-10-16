@@ -82,7 +82,6 @@ with col1:
 with col2:
     store_id = st.selectbox("Store", store_lookup["Store ID"].tolist())
 
-# Corrected .iloc syntax error
 selected_category = product_lookup.loc[
     product_lookup["Product ID"] == product_id, "Category"
 ].values[0]
@@ -128,7 +127,7 @@ with col1:
     )
     promotion = st.selectbox(
         "Promotion",
-,
+        options=(0, 1),
         format_func=lambda x: "Yes" if x == 1 else "No"
     )
 
@@ -139,7 +138,7 @@ with col2:
     )
     epidemic = st.selectbox(
         "Epidemic Condition",
-,
+        options=(0, 1),
         format_func=lambda x: "Yes" if x == 1 else "No"
     )
 
