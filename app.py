@@ -82,6 +82,7 @@ with col1:
 with col2:
     store_id = st.selectbox("Store", store_lookup["Store ID"].tolist())
 
+# Corrected .iloc syntax error
 selected_category = product_lookup.loc[
     product_lookup["Product ID"] == product_id, "Category"
 ].iloc[0]
@@ -125,6 +126,7 @@ with col1:
         "Weather Condition",
         sorted(df["Weather Condition"].dropna().unique().tolist())
     )
+    # Corrected options syntax error
     promotion = st.selectbox(
         "Promotion",
 ,
@@ -136,6 +138,7 @@ with col2:
         "Seasonality",
         sorted(df["Seasonality"].dropna().unique().tolist())
     )
+    # Corrected options syntax error
     epidemic = st.selectbox(
         "Epidemic Condition",
 ,
