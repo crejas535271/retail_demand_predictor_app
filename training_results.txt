@@ -1,0 +1,8 @@
+Dataset: 76,000 rows, 16 original columns
+Chronological split: 80% train / 20% test
+
+Random Forest Regression
+MAE: 12.1199
+MSE: 250.4647
+RMSE: 15.8261
+R2: 0.8711
