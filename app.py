@@ -176,7 +176,6 @@ if st.button("🔮 Predict Demand", type="primary", use_container_width=True):
         predicted_demand = max(0, round(prediction))
     else:
         # --- DEMO FALLBACK LOGIC (Runs on Streamlit Community Cloud) ---
-        # Generate a highly realistic mock estimation baseline from standard inputs
         base_demand = units_sold * 1.15
         if promotion == 1:
             base_demand *= 1.25
