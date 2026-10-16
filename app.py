@@ -12,14 +12,31 @@ st.set_page_config(
 MODEL_PATH = "retail_demand_model.pkl"
 DATA_PATH = "sales_data.csv"
 
+# Check if required files exist (They exist locally, but not on GitHub)
+HAS_MODEL = os.path.exists(MODEL_PATH)
+HAS_DATA = os.path.exists(DATA_PATH)
+
 @st.cache_resource
 def load_model():
-    return joblib.load(MODEL_PATH)
+    if HAS_MODEL:
+        return joblib.load(MODEL_PATH)
+    return None
 
 @st.cache_data
 def load_reference_data():
-    df = pd.read_csv(DATA_PATH)
-    return df
+    if HAS_DATA:
+        return pd.read_csv(DATA_PATH)
+    
+    # Fallback mock data for lookup tables if CSV is ignored on GitHub
+    mock_data = {
+        "Product ID": [f"P{i:03d}" for i in range(1, 11)],
+        "Category": ["Electronics", "Clothing", "Home", "Electronics", "Clothing", "Home", "Groceries", "Groceries", "Toys", "Toys"],
+        "Store ID": [f"S00{i}" for i in range(1, 6)] * 2,
+        "Region": ["North", "South", "East", "West", "Central"] * 2,
+        "Weather Condition": ["Sunny", "Rainy", "Cloudy", "Snowy", "Windy", "Sunny", "Rainy", "Cloudy", "Snowy", "Windy"],
+        "Seasonality": ["Spring", "Summer", "Autumn", "Winter", "Holiday", "Spring", "Summer", "Autumn", "Winter", "Holiday"]
+    }
+    return pd.DataFrame(mock_data)
 
 model = load_model()
 df = load_reference_data()
@@ -27,10 +44,18 @@ df = load_reference_data()
 st.title("📦 Retail Demand Predictor")
 st.write("Estimate product demand to support inventory planning and replenishment.")
 
-st.info(
-    "This application uses the trained Random Forest Regression model from the project. "
-    "Some values such as Category and Region are filled automatically from the selected product and store."
-)
+# Alert user about execution environment mode
+if not HAS_MODEL or not HAS_DATA:
+    st.info(
+        "💡 **Running in Online Demo Mode**\n\n"
+        "Because the 1GB model and data files are ignored in the GitHub repository, "
+        "this web app uses rule-based predictive fallback calculations to demonstrate functionality."
+    )
+else:
+    st.info(
+        "This application uses the trained Random Forest Regression model from the project. "
+        "Some values such as Category and Region are filled automatically from the selected product and store."
+    )
 
 # Build reliable lookup tables from the actual project data.
 product_lookup = (
@@ -102,7 +127,7 @@ with col1:
     )
     promotion = st.selectbox(
         "Promotion",
-        [0, 1],
+,
         format_func=lambda x: "Yes" if x == 1 else "No"
     )
 
@@ -113,43 +138,58 @@ with col2:
     )
     epidemic = st.selectbox(
         "Epidemic Condition",
-        [0, 1],
+,
         format_func=lambda x: "Yes" if x == 1 else "No"
     )
 
 st.caption("The app automatically creates Year, Month, Day, and Day of Week from the selected date.")
 
 if st.button("🔮 Predict Demand", type="primary", use_container_width=True):
-    input_df = pd.DataFrame([{
-        "Date": pd.Timestamp(date),
-        "Store ID": store_id,
-        "Product ID": product_id,
-        "Category": selected_category,
-        "Region": selected_region,
-        "Inventory Level": inventory_level,
-        "Units Sold": units_sold,
-        "Units Ordered": units_ordered,
-        "Price": price,
-        "Discount": discount,
-        "Weather Condition": weather,
-        "Promotion": promotion,
-        "Competitor Pricing": competitor_pricing,
-        "Seasonality": seasonality,
-        "Epidemic": epidemic,
-    }])
+    if HAS_MODEL and model is not None:
+        # --- TRUE ML MODEL RUN (Runs on your local computer) ---
+        input_df = pd.DataFrame([{
+            "Date": pd.Timestamp(date),
+            "Store ID": store_id,
+            "Product ID": product_id,
+            "Category": selected_category,
+            "Region": selected_region,
+            "Inventory Level": inventory_level,
+            "Units Sold": units_sold,
+            "Units Ordered": units_ordered,
+            "Price": price,
+            "Discount": discount,
+            "Weather Condition": weather,
+            "Promotion": promotion,
+            "Competitor Pricing": competitor_pricing,
+            "Seasonality": seasonality,
+            "Epidemic": epidemic,
+        }])
 
-    # Match the exact feature engineering used during model training.
-    input_df["Date"] = pd.to_datetime(input_df["Date"])
-    input_df["Year"] = input_df["Date"].dt.year
-    input_df["Month"] = input_df["Date"].dt.month
-    input_df["Day"] = input_df["Date"].dt.day
-    input_df["DayOfWeek"] = input_df["Date"].dt.dayofweek
-    input_df = input_df.drop(columns=["Date"])
+        input_df["Date"] = pd.to_datetime(input_df["Date"])
+        input_df["Year"] = input_df["Date"].dt.year
+        input_df["Month"] = input_df["Date"].dt.month
+        input_df["Day"] = input_df["Date"].dt.day
+        input_df["DayOfWeek"] = input_df["Date"].dt.dayofweek
+        input_df = input_df.drop(columns=["Date"])
 
-    prediction = float(model.predict(input_df)[0])
-    predicted_demand = max(0, round(prediction))
+        prediction = float(model.predict(input_df)[0])
+        predicted_demand = max(0, round(prediction))
+    else:
+        # --- DEMO FALLBACK LOGIC (Runs on Streamlit Community Cloud) ---
+        # Generate a highly realistic mock estimation baseline from standard inputs
+        base_demand = units_sold * 1.15
+        if promotion == 1:
+            base_demand *= 1.25
+        if discount > 0:
+            base_demand *= (1 + (discount / 100))
+        if competitor_pricing < price:
+            base_demand *= 0.85
+        if weather in ["Rainy", "Snowy"] and selected_category != "Groceries":
+            base_demand *= 0.75
+            
+        predicted_demand = max(5, round(base_demand))
+
     difference = predicted_demand - inventory_level
-
     st.success("Prediction completed!")
 
     st.header("4. Demand Result")
